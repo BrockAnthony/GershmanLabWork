@@ -43,9 +43,9 @@ function [results] = fit_models_brock_RI(data, results)
     %   alpha_low  
     %   alpha_high 
 
-    tau_range = 0.0001:0.005:0.02;           
-    alpha_low_range = 0.0001:0.05:42;  
-    alpha_high_range = 0.0001:0.05:42; 
+    tau_range = 0.0001:0.005:2;           
+    alpha_low_range = 0.001:0.005:50;  
+    alpha_high_range = 0.001:0.005:50; 
     
     % Create parameter definitions with these ranges
     param(1) = struct('name', 'tau', 'range', tau_range, 'lb', min(tau_range), 'ub', max(tau_range));
@@ -84,7 +84,11 @@ function [results] = fit_models_brock_RI(data, results)
         %            (log_var > 0);
 
         % log-likelihood
-        lik = sum(lognormpdf(data.log_estimate, log_estimate_predicted, sqrt(log_var)));
+        ll = lognormpdf(data.log_estimate, log_estimate_predicted, sqrt(log_var));
+
+        ll(isnan(ll) | isinf(ll)) = -1000;
+
+        lik = sum(ll);
 
         % If latents requested, store predicted estimates, etc.
         if nargout > 1

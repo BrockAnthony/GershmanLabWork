@@ -39,6 +39,8 @@ function [results] = fit_models_brock_BDI_intact(data, BDI_intact)
         D(s).log_avg_stim = log(data(s).avg_stim);
 
         D(s).N            = length(data(s).estimate);  % number of trials
+        D(s).BDI          = data(s).scaled_BDI;
+
 
         % Convert incentive to R (0 for low; 1 for high incentives)
         if isnumeric(data(s).incentive)
@@ -52,9 +54,6 @@ function [results] = fit_models_brock_BDI_intact(data, BDI_intact)
         else
             error('Unexpected data type for incentive in subject %d', s);
         end
-
-        % Include the subject's BDI (sum of survey BDI data)
-        D(s).BDI = sum(data(s).survey.BDI);
     end
 
     likfun = @(x, data) likfun_RI_inline(x, data, BDI_intact); 
@@ -65,9 +64,9 @@ function [results] = fit_models_brock_BDI_intact(data, BDI_intact)
     %   beta1  (effect of BDI score)
     %   beta2  (effect of reward condition)
 
-    tau_range = 0.0001:0.01:0.1;        
+    tau_range = 0.0001:0.001:2;        
     beta0_range = 0.001:0.005:50;             
-    beta1_range = -25:0.01:5;             
+    beta1_range = -5:0.001:0;             
     beta2_range = 0.001:0.005:50;                
     
     param(1) = struct('name', 'tau', 'range', tau_range, 'lb', min(tau_range), 'ub', max(tau_range));
@@ -105,13 +104,14 @@ function [results] = fit_models_brock_BDI_intact(data, BDI_intact)
         log_estimate_predicted = w .* data.log_stimulus + (1 - w) .* data.log_avg_stim;
 
         % Predicted variance of log-estimate
-        log_var = min(((w.^2)./lambda) + tau, 1.0);
-
-        % Valid trials (exclude any with NaNs or negative variance)
-        % validIdx = ~isnan(data.log_estimate) & ~isnan(log_estimate_predicted) & (log_var > 0);
+        log_var = ((w.^2)./lambda) + tau;
 
         % log-likelihood
-        lik = sum(lognormpdf(data.log_estimate, log_estimate_predicted, sqrt(log_var)));
+        ll = lognormpdf(data.log_estimate, log_estimate_predicted, sqrt(log_var));
+
+        ll(isnan(ll) | isinf(ll)) = -1000;
+
+        lik = sum(ll);
 
         % If latents requested, store predicted estimates, etc.
         if nargout > 1
