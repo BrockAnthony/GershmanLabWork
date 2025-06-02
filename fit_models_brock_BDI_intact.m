@@ -66,8 +66,8 @@ function [results] = fit_models_brock_BDI_intact(data, BDI_intact)
 
     tau_range = 0.0001:0.001:2;        
     beta0_range = 0.001:0.005:50;             
-    beta1_range = -5:0.001:0;             
-    beta2_range = 0.001:0.005:50;                
+    beta1_range = -25:0.001:25;             
+    beta2_range = -25:0.005:25;                
     
     param(1) = struct('name', 'tau', 'range', tau_range, 'lb', min(tau_range), 'ub', max(tau_range));
     param(2) = struct('name', 'beta0', 'range', beta0_range, 'lb', min(beta0_range), 'ub', max(beta0_range));

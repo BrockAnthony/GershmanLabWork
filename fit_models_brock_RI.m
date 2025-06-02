@@ -78,16 +78,9 @@ function [results] = fit_models_brock_RI(data, results)
         % Predicted variance of log-estimate
         log_var = ((w.^2)./lambda) + tau;
 
-        % % Valid trials (exclude any with NaNs or negative variance)
-        % validIdx = ~isnan(data.log_estimate) & ...
-        %            ~isnan(log_estimate_predicted) & ...
-        %            (log_var > 0);
-
         % log-likelihood
         ll = lognormpdf(data.log_estimate, log_estimate_predicted, sqrt(log_var));
-
         ll(isnan(ll) | isinf(ll)) = -1000;
-
         lik = sum(ll);
 
         % If latents requested, store predicted estimates, etc.
