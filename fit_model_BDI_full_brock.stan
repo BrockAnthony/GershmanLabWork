@@ -36,9 +36,9 @@ transformed data {
 parameters {
   // Group-level parameters
   real<lower=0.0001, upper=2> mu_tau;     // Mean of base noise parameter
-  real<lower=0.001, upper=25> mu_beta0;   // Mean baseline alpha
-  real<lower=-10, upper=0> mu_beta1;      // Mean BDI effect 
-  real<lower=0, upper=15> mu_beta2;       // Mean reward condition effect
+  real<lower=0.001, upper=50> mu_beta0;   // Mean baseline alpha
+  real<lower=-10, upper=10> mu_beta1;      // Mean BDI effect 
+  real<lower=-10, upper=10> mu_beta2;       // Mean reward condition effect
   
   // Standard deviations for subject-level random effects
   real<lower=0> sigma_tau;
@@ -58,7 +58,7 @@ transformed parameters {
   vector<lower=0.0001>[Nsubject] tau;
   vector<lower=0.001>[Nsubject] beta0;
   vector[Nsubject] beta1;
-  vector<lower=0>[Nsubject] beta2;
+  vector[Nsubject] beta2;
   
   // Trial-level parameters
   matrix[Ntrial, Nsubject] alpha;
@@ -72,15 +72,12 @@ transformed parameters {
     tau[s] = fmax(mu_tau + sigma_tau * z_tau[s], 0.0001);
     beta0[s] = fmax(mu_beta0 + sigma_beta0 * z_beta0[s], 0.001);
     beta1[s] = mu_beta1 + sigma_beta1 * z_beta1[s];
-    beta2[s] = fmax(mu_beta2 + sigma_beta2 * z_beta2[s], 0.0);
+    beta2[s] = mu_beta2 + sigma_beta2 * z_beta2[s];
     
     // Calculate trial-level parameters for this subject
     for (t in 1:Ntrial) {
-      // Calculate alpha using model: alpha = beta0 + beta1*BDI + beta2*condition
-      alpha[t, s] = beta0[s] + beta1[s] * scaledBDI[s] + beta2[s] * condition[t, s];
-      
-      // Ensure alpha is positive
-      alpha[t, s] = fmax(alpha[t, s], 0.001);
+      //model: alpha = beta0 + beta1*BDI + beta2*condition
+      alpha[t, s] = fmax(beta0[s] + beta1[s] * scaledBDI[s] + beta2[s] * condition[t, s], 0.001);
       
       // Calculate precision
       lambda[t, s] = fmax(2 * alpha[t, s] - lambda0, 0.0001);
@@ -99,12 +96,12 @@ transformed parameters {
 
 model {
   // Priors for group-level parameters
-  mu_tau ~ uniform(0.0001, 2);
-  mu_beta0 ~ uniform(0.001, 50);
-  mu_beta1 ~ uniform(-10, 0);
-  mu_beta2 ~ uniform(0, 15);
+  mu_tau ~ cauchy(0, 0.5);        
+  mu_beta0 ~ cauchy(0, 10);    
+  mu_beta1 ~ cauchy(0, 2.5);    
+  mu_beta2 ~ cauchy(0, 2.5);    
   
-  // Priors for standard deviations
+  // Priors for standard deviations 
   sigma_tau ~ exponential(1);
   sigma_beta0 ~ exponential(0.5);
   sigma_beta1 ~ exponential(1);
@@ -119,7 +116,7 @@ model {
   // Likelihood
   for (s in 1:Nsubject) {
     for (t in 1:Ntrial) {
-      if (valid[t, s] == 1) {  // Only include valid observations
+      if (valid[t, s] == 1) {
         real sigma = sqrt(log_var[t, s]);
         target += normal_lpdf(log_estimate[t, s] | log_estimate_predicted[t, s], sigma);
       }

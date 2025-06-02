@@ -85,9 +85,9 @@ transformed parameters {
 }
 
 model {
-  mu_tau ~ uniform(0.0001, 2);
-  mu_alpha_low ~ uniform(0.001, 50);
-  mu_alpha_high ~ uniform(0.001, 50);
+  mu_tau ~ cauchy(0, 0.5);           
+  mu_alpha_low ~ cauchy(0, 10);   
+  mu_alpha_high ~ cauchy(0, 10); 
   
   sigma_tau ~ exponential(1);
   sigma_alpha_low ~ exponential(0.5);
@@ -101,7 +101,7 @@ model {
   // Likelihood
   for (s in 1:Nsubject) {
     for (t in 1:Ntrial) {
-      if (valid[t, s] == 1) {  // Only include valid observations
+      if (valid[t, s] == 1) { 
         real sigma = sqrt(log_var[t, s]);
         target += normal_lpdf(log_estimate[t, s] | log_estimate_predicted[t, s], sigma);
       }
@@ -124,8 +124,12 @@ generated quantities {
       confidence[t, s] = 1 / (lambda[t, s] + lambda0);
       
       // Calculate log likelihood
-      real sigma = sqrt(log_var[t, s]);
-      log_lik[t, s] = normal_lpdf(log_estimate[t, s] | log_estimate_predicted[t, s], sigma);
+      if (valid[t, s] == 1) {
+        real sigma = sqrt(log_var[t, s]);
+        log_lik[t, s] = normal_lpdf(log_estimate[t, s] | log_estimate_predicted[t, s], sigma);
+      } else {
+        log_lik[t, s] = 0;  // Set to 0 for invalid trials
+      }
     }
   }
 }
